@@ -8,6 +8,7 @@ import (
 	"math"
 	"strings"
 	"testing"
+	"time"
 
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/internal/errors"
@@ -1895,6 +1896,22 @@ func TestUnmarshal(t *testing.T) {
 		inputMessage: &timestamppb.Timestamp{},
 		inputText:    `"1970-01-01T00:00:00.0000000001Z"`,
 		wantErr:      `invalid google.protobuf.Timestamp value`,
+	}, {
+		desc:         "Timestamp format",
+		inputMessage: &timestamppb.Timestamp{},
+		umo: protojson.UnmarshalOptions{
+			TimestampFormat: time.RubyDate,
+		},
+		inputText:   `"Tue Mar 19 15:03:21 -0800 2019"`,
+		wantMessage: &timestamppb.Timestamp{Seconds: 1553036601},
+	}, {
+		desc:         "Timestamp incorrect format",
+		inputMessage: &timestamppb.Timestamp{},
+		umo: protojson.UnmarshalOptions{
+			TimestampFormat: time.RFC3339,
+		},
+		inputText: `"Tue Mar 19 15:03:21 -0800 2019"`,
+		wantErr:   `invalid google.protobuf.Timestamp value`,
 	}, {
 		desc:         "FieldMask empty",
 		inputMessage: &fieldmaskpb.FieldMask{},

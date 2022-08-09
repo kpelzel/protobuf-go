@@ -794,14 +794,38 @@ func (e encoder) marshalTimestamp(m protoreflect.Message) error {
 	if nanos < 0 || nanos > secondsInNanos {
 		return errors.New("%s: nanos out of range %v", genid.Timestamp_message_fullname, nanos)
 	}
+	t := time.Unix(secs, nanos)
+	x := ""
+	if e.opts.TimestampZone != nil {
+		t = t.In(e.opts.TimestampZone)
+	} else {
+		t = t.UTC()
+	}
 	// Uses RFC 3339, where generated output will be Z-normalized and uses 0, 3,
 	// 6 or 9 fractional digits.
-	t := time.Unix(secs, nanos).UTC()
-	x := t.Format("2006-01-02T15:04:05.000000000")
-	x = strings.TrimSuffix(x, "000")
-	x = strings.TrimSuffix(x, "000")
-	x = strings.TrimSuffix(x, ".000")
-	e.WriteString(x + "Z")
+	if e.opts.TimestampFormat == defaultTimestampFormat {
+		x = t.Format(e.opts.TimestampFormat)
+		x = strings.TrimSuffix(x, "000")
+		x = strings.TrimSuffix(x, "000")
+		x = strings.TrimSuffix(x, ".000")
+		if t != t.UTC() {
+			p := strings.Split(t.Format(time.RFC3339), "-")
+			offset := "-" + p[len(p)-1]
+			if !strings.Contains(offset, ":") {
+				p = strings.Split(t.Format(time.RFC3339), "+")
+				offset = "+" + p[len(p)-1]
+			}
+			if strings.Contains(offset, ":") {
+				x = x + offset
+			}
+		} else {
+			x = x + "Z"
+		}
+	} else {
+		x = t.Format(e.opts.TimestampFormat)
+	}
+
+	e.WriteString(x)
 	return nil
 }
 
@@ -814,7 +838,7 @@ func (d decoder) unmarshalTimestamp(m protoreflect.Message) error {
 		return d.unexpectedTokenError(tok)
 	}
 
-	t, err := time.Parse(time.RFC3339Nano, tok.ParsedString())
+	t, err := time.Parse(d.opts.TimestampFormat, tok.ParsedString())
 	if err != nil {
 		return d.newError(tok.Pos(), "invalid %v value %v", genid.Timestamp_message_fullname, tok.RawString())
 	}

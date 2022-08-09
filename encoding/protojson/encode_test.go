@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"math"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 
@@ -1503,6 +1504,28 @@ func TestMarshal(t *testing.T) {
 		desc:    "Timestamp with +nanos out of range",
 		input:   &timestamppb.Timestamp{Nanos: 1e9},
 		wantErr: true,
+	}, {
+		desc: "Timestamp Timezone",
+		mo: protojson.MarshalOptions{
+			TimestampZone: time.FixedZone("UTC-8", -8*60*60),
+		},
+		input: &timestamppb.Timestamp{Seconds: 1553036601},
+		want:  `"2019-03-19T15:03:21-08:00"`,
+	}, {
+		desc: "Timestamp Format",
+		mo: protojson.MarshalOptions{
+			TimestampFormat: "2006-01-02T15:04:05Z07:00",
+		},
+		input: &timestamppb.Timestamp{Seconds: 1553036601, Nanos: 1},
+		want:  `"2019-03-19T23:03:21Z"`,
+	}, {
+		desc: "Timestamp Zone Format",
+		mo: protojson.MarshalOptions{
+			TimestampFormat: "2006-01-02T15:04:05Z07:00",
+			TimestampZone:   time.FixedZone("UTC-8", -8*60*60),
+		},
+		input: &timestamppb.Timestamp{Seconds: 1553036601, Nanos: 1},
+		want:  `"2019-03-19T15:03:21-08:00"`,
 	}, {
 		desc:  "FieldMask empty",
 		input: &fieldmaskpb.FieldMask{},

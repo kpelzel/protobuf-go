@@ -7,6 +7,7 @@ package protojson
 import (
 	"encoding/base64"
 	"fmt"
+	"time"
 
 	"google.golang.org/protobuf/internal/encoding/json"
 	"google.golang.org/protobuf/internal/encoding/messageset"
@@ -21,7 +22,10 @@ import (
 	"google.golang.org/protobuf/reflect/protoregistry"
 )
 
-const defaultIndent = "  "
+const (
+	defaultIndent          = "  "
+	defaultTimestampFormat = "2006-01-02T15:04:05.000000000"
+)
 
 // Format formats the message as a multiline string.
 // This function is only intended for human consumption and ignores errors.
@@ -64,6 +68,14 @@ type MarshalOptions struct {
 
 	// UseEnumNumbers emits enum values as numbers.
 	UseEnumNumbers bool
+
+	// TimestampFormat will format any timestamps in the layout defined here.
+	// See the time.Time.Format documentation for layout strings.
+	// If TimestampFormat is an empty string, then RFC3339 is chosen.
+	TimestampFormat string
+
+	// Define a location for all timestamps. If this is nil, all timestamps will be UTC.
+	TimestampZone *time.Location
 
 	// EmitUnpopulated specifies whether to emit unpopulated fields. It does not
 	// emit unpopulated oneof fields or unpopulated extension fields.
@@ -118,6 +130,9 @@ func (o MarshalOptions) marshal(m proto.Message) ([]byte, error) {
 	}
 	if o.Resolver == nil {
 		o.Resolver = protoregistry.GlobalTypes
+	}
+	if o.TimestampFormat == "" {
+		o.TimestampFormat = defaultTimestampFormat
 	}
 
 	internalEnc, err := json.NewEncoder(o.Indent)

@@ -10,6 +10,7 @@ import (
 	"math"
 	"strconv"
 	"strings"
+	"time"
 
 	"google.golang.org/protobuf/internal/encoding/json"
 	"google.golang.org/protobuf/internal/encoding/messageset"
@@ -40,6 +41,11 @@ type UnmarshalOptions struct {
 	// If DiscardUnknown is set, unknown fields are ignored.
 	DiscardUnknown bool
 
+	// TimestampFormat will parse any timestamps in the layout defined here.
+	// See the time.Time.Format documentation for layout strings.
+	// If TimestampFormat is an empty string, then RFC3339Nano is chosen.
+	TimestampFormat string
+
 	// Resolver is used for looking up types when unmarshaling
 	// google.protobuf.Any messages or extension fields.
 	// If nil, this defaults to using protoregistry.GlobalTypes.
@@ -66,6 +72,9 @@ func (o UnmarshalOptions) unmarshal(b []byte, m proto.Message) error {
 
 	if o.Resolver == nil {
 		o.Resolver = protoregistry.GlobalTypes
+	}
+	if o.TimestampFormat == "" {
+		o.TimestampFormat = time.RFC3339Nano
 	}
 
 	dec := decoder{json.NewDecoder(b), o}
